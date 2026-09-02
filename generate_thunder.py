@@ -254,10 +254,19 @@ def make_rain_fade(duration=5.0):
     return sig
 
 
+def make_rain_swell(duration=18.0):
+    """A passing squall: rain that rises above the bed and dies back down.
+    Played on top of the looping bed for an occasional swell."""
+    sig = _rain_bed(duration)
+    sig *= np.sin(np.pi * np.linspace(0, 1, len(sig))) ** 2
+    return sig
+
+
 def write_rain():
     print("Generating rain...")
     write_wav("rain.wav", make_rain())
     write_wav("rain_fade.wav", make_rain_fade())
+    write_wav("rain_swell.wav", make_rain_swell())
 
 
 # Variety pack: close sharp cracks through distant dull rumbles.

@@ -8,9 +8,14 @@ A Python script (`thunderstorm.py`) that drives a lightning + thunder light show
 on WiZ smart bulbs over the local network (UDP port 38899, via the `pywizlight`
 library), synced with real thunderclap audio (`thunder_*.wav`, played via macOS
 `afplay`, or `ffplay`/`paplay`/`aplay` on Linux). `generate_thunder.py` regenerates
-the WAV files (needs `numpy`) but isn't part of the normal run path. No build
-system, no test suite — just the script, the pre-generated WAVs, and
-`README.md` for end-user setup/usage instructions.
+the WAV files (needs `numpy`) but isn't part of the normal run path.
+`rain_ambience.py` imports `thunderstorm` as a library for an audio-only rain
+bed (occasional swell overlays; `--thunder` lone claps; `--storms` shells out to
+`thunderstorm.py --no-rain` and SIGTERMs it on shutdown so bulbs restore).
+`storm_party.sh` and `rain_ambience.sh` are pidfile-based start/stop/status
+daemons around the two Python entry points, with hardcoded project paths, meant
+for Apple Shortcuts. No build system, no test suite — just the scripts, the
+pre-generated WAVs, and `README.md` for end-user setup/usage instructions.
 
 ## Running it
 

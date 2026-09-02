@@ -192,6 +192,29 @@ If a storm run from a Shortcut finds no bulbs while a terminal run works,
 check **System Settings → Privacy & Security → Local Network** and allow
 Shortcuts.
 
+### Rain ambience (`rain_ambience.sh`)
+
+Just the rain — a continuous sound bed with occasional passing squalls, **no
+lighting effects**. Nice for background ambience. Optional extras: lone
+distant thunderclaps, or a full lightning storm now and then. Auto-expires
+(default 8 hours):
+
+```bash
+./rain_ambience.sh start                     # 8 hours of rain
+./rain_ambience.sh start 2                   # 2 hours
+./rain_ambience.sh start 8 --thunder         # + occasional distant thunder
+./rain_ambience.sh start 8 --storms          # + occasional full light storms
+./rain_ambience.sh start 8 --volume 0.5     # quieter
+./rain_ambience.sh stop                      # fades out over a few seconds
+./rain_ambience.sh status
+```
+
+(Or run `python3 rain_ambience.py --thunder` directly in a terminal and stop
+with Ctrl+C.) `--storms` is the only mode that touches the bulbs; the storms
+skip their own rain so they blend into the ambience bed, and the loudness of
+the rain relative to everything else is `RAIN_LEVEL` at the top of
+`rain_ambience.py`.
+
 ---
 
 ## Troubleshooting
