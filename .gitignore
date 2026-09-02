@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+.DS_Store
+.storm_party.pid
+*.zip
+.claude/settings.local.json

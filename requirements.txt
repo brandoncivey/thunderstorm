@@ -1,0 +1,2 @@
+pywizlight>=0.6.6
+numpy  # only needed to regenerate thunder_*.wav via generate_thunder.py
