@@ -145,6 +145,55 @@ Audio is already built in and synced to each strike. To change it:
 
 ---
 
+## 6. Shortcuts & party mode
+
+Two helper scripts wrap `thunderstorm.py` so you can trigger storms without a
+terminal. **Both expect a virtualenv at `.venv` inside this folder** and have
+the project path hardcoded at the top — after moving to a new Mac, do this once:
+
+```bash
+cd /path/to/this/folder
+python3 -m venv .venv
+./.venv/bin/pip install -r requirements.txt
+```
+
+then edit the `cd`/`DIR` path at the top of each script to match the folder's
+location on that machine.
+
+### One-shot storm (`run_thunderstorm.sh`)
+
+Runs a single storm (edit the flags inside to taste). To trigger it from
+Spotlight/Siri, make an Apple **Shortcut**: Shortcuts app → new shortcut → add
+a **"Run Shell Script"** action (shell `/bin/bash`, input **Nothing**) with:
+
+```
+/path/to/this/folder/run_thunderstorm.sh
+```
+
+Note: Shortcuts sync to iPhone via iCloud, but shell-script actions only run
+on a Mac — tapping the shortcut on a phone won't work.
+
+### Party mode (`storm_party.sh`)
+
+Fires a storm immediately, then again at an interval, and **shuts itself off**
+after a time limit so a forgotten party mode doesn't storm all night:
+
+```bash
+./storm_party.sh start           # storm now, then every 30 min, stops after 3 h
+./storm_party.sh start 4 60      # every 60 min for 4 hours
+./storm_party.sh stop            # stop now (mid-storm stop still restores bulbs)
+./storm_party.sh status
+```
+
+For one-tap control, make two Shortcuts the same way as above, pointing at
+`storm_party.sh start` and `storm_party.sh stop`.
+
+If a storm run from a Shortcut finds no bulbs while a terminal run works,
+check **System Settings → Privacy & Security → Local Network** and allow
+Shortcuts.
+
+---
+
 ## Troubleshooting
 
 - **"No bulbs found"** — bulbs and computer must be on the same network/band;
