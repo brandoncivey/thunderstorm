@@ -15,7 +15,7 @@ Quick start:
 Press Ctrl+C at any time to stop. The script restores the lights to a soft
 warm glow when it exits.
 
-See README_thunderstorm.md for full setup instructions.
+See README.md for full setup instructions.
 """
 
 import argparse

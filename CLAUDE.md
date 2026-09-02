@@ -10,7 +10,7 @@ library), synced with real thunderclap audio (`thunder_*.wav`, played via macOS
 `afplay`, or `ffplay`/`paplay`/`aplay` on Linux). `generate_thunder.py` regenerates
 the WAV files (needs `numpy`) but isn't part of the normal run path. No build
 system, no test suite — just the script, the pre-generated WAVs, and
-`README_thunderstorm.md` for end-user setup/usage instructions.
+`README.md` for end-user setup/usage instructions.
 
 ## Running it
 
