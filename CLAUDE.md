@@ -64,8 +64,10 @@ Everything lives in `thunderstorm.py`, structured top to bottom as:
 
 5. **Audio** (`find_audio_player`, `load_thunder_files`, `schedule_thunder`,
    `play_thunder_after`, plus `load_rain_file`/`rain_loop` for the continuous
-   rain bed that loops `rain.wav` at `RAIN_VOLUME × --volume` until its task
-   is cancelled on exit, terminating the player subprocess in its `finally`) —
+   rain bed that plays `rain_fadein.wav` once, then loops `rain.wav` at
+   `RAIN_VOLUME × --volume` until its task is cancelled on exit, where its
+   `finally` terminates the player subprocess and plays `rain_fade.wav` so
+   the rain eases in and out instead of cutting) —
    each `strike` picks a random "distance" (0.0 = on
    top of you, 1.0 = far away) that both selects which `thunder_*.wav` plays
    (index into the sorted file list) and how long after the flash it fires

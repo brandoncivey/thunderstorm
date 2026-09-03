@@ -108,19 +108,29 @@ def load_rain_file():
 
 
 async def rain_loop(wav, player, volume):
-    """Play the rain bed on repeat until cancelled (at storm end/exit).
-    Like the thunder, rain must never crash the light show."""
+    """Play the rain bed on repeat until cancelled (at storm end/exit),
+    easing in at the start. Like the thunder, rain must never crash the
+    light show."""
     proc = None
+
+    async def play_and_wait(path):
+        nonlocal proc
+        proc = player(path, volume)
+        if not isinstance(proc, subprocess.Popen):
+            return False  # player can't be looped/stopped (e.g. winsound)
+        while proc.poll() is None:
+            await asyncio.sleep(0.25)
+        return True
+
     try:
+        fade_in = os.path.join(_SCRIPT_DIR, "rain_fadein.wav")
+        if os.path.exists(fade_in) and not await play_and_wait(fade_in):
+            return
         while True:
-            try:
-                proc = player(wav, volume)
-            except Exception:
+            if not await play_and_wait(wav):
                 return
-            if not isinstance(proc, subprocess.Popen):
-                return  # player can't be looped/stopped (e.g. winsound): play once
-            while proc.poll() is None:
-                await asyncio.sleep(0.25)
+    except Exception:
+        return
     finally:
         if isinstance(proc, subprocess.Popen) and proc.poll() is None:
             proc.terminate()

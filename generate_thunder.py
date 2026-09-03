@@ -254,6 +254,14 @@ def make_rain_fade(duration=5.0):
     return sig
 
 
+def make_rain_fadein(duration=5.0):
+    """Rain that rises from silence to full level — played once before the
+    rain bed starts looping so the storm eases in instead of slamming on."""
+    sig = _rain_bed(duration)
+    sig *= np.linspace(0, 1, len(sig)) ** 1.5  # ease in
+    return sig
+
+
 def make_rain_swell(duration=18.0):
     """A passing squall: rain that rises above the bed and dies back down.
     Played on top of the looping bed for an occasional swell."""
@@ -266,6 +274,7 @@ def write_rain():
     print("Generating rain...")
     write_wav("rain.wav", make_rain())
     write_wav("rain_fade.wav", make_rain_fade())
+    write_wav("rain_fadein.wav", make_rain_fadein())
     write_wav("rain_swell.wav", make_rain_swell())
 
 
