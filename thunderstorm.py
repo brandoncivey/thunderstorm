@@ -20,6 +20,7 @@ See README.md for full setup instructions.
 
 import argparse
 import asyncio
+import contextlib
 import glob
 import os
 import random
@@ -27,6 +28,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import wave
 
 # ---------------------------------------------------------------------------
 # Tunables — the "feel" of the storm. Adjust to taste.
@@ -107,33 +109,61 @@ def load_rain_file():
     return path if os.path.exists(path) else None
 
 
+# How long the next rain clip overlaps the ending one. Each clip carries a
+# 0.4s fade at both edges, so an ~0.8s overlap crossfades them with no dip;
+# it also absorbs the player's ~0.1-0.3s startup latency.
+RAIN_CROSSFADE = 0.8
+
+
+def _wav_seconds(path):
+    try:
+        with contextlib.closing(wave.open(path, "rb")) as w:
+            return w.getnframes() / float(w.getframerate())
+    except Exception:
+        return None
+
+
 async def rain_loop(wav, player, volume):
     """Play the rain bed on repeat until cancelled (at storm end/exit),
-    easing in at the start. Like the thunder, rain must never crash the
-    light show."""
-    proc = None
+    easing in at the start. Each repeat is started slightly before the
+    previous one ends so their edge fades crossfade — no audible gap.
+    Like the thunder, rain must never crash the light show."""
+    procs = []  # the (at most two) player processes that may still be alive
 
-    async def play_and_wait(path):
-        nonlocal proc
-        proc = player(path, volume)
-        if not isinstance(proc, subprocess.Popen):
-            return False  # player can't be looped/stopped (e.g. winsound)
-        while proc.poll() is None:
-            await asyncio.sleep(0.25)
-        return True
+    def start(path):
+        p = player(path, volume)
+        procs.append(p)
+        del procs[:-2]
+        return p
 
     try:
+        clip = _wav_seconds(wav)
         fade_in = os.path.join(_SCRIPT_DIR, "rain_fadein.wav")
-        if os.path.exists(fade_in) and not await play_and_wait(fade_in):
-            return
+        if os.path.exists(fade_in):
+            p = start(fade_in)
+            if not isinstance(p, subprocess.Popen):
+                return  # player can't be looped/stopped (e.g. winsound)
+            lead = _wav_seconds(fade_in)
+            await asyncio.sleep(max(0.0, (lead or 0.0) - RAIN_CROSSFADE))
         while True:
-            if not await play_and_wait(wav):
+            p = start(wav)
+            if not isinstance(p, subprocess.Popen):
                 return
+            if clip is not None and clip > RAIN_CROSSFADE:
+                await asyncio.sleep(clip - RAIN_CROSSFADE)
+            else:
+                # Unknown clip length: fall back to relaunch-on-exit
+                # (a small dip at each restart).
+                while p.poll() is None:
+                    await asyncio.sleep(0.25)
     except Exception:
         return
     finally:
-        if isinstance(proc, subprocess.Popen) and proc.poll() is None:
-            proc.terminate()
+        live = [p for p in procs
+                if isinstance(p, subprocess.Popen) and p.poll() is None]
+        for p in live:
+            p.terminate()
+        if live:
             # Let the rain die away instead of cutting to silence: the fade
             # clip starts at full rain level, masking the hard cut. It plays
             # in its own process, so it finishes even as the script exits.
