@@ -31,6 +31,7 @@ final class StormEngine: ObservableObject {
     static let ambientBrightness = 12
     static let flashRGB = (255, 255, 255)
     static let flashBrightness = 255
+    static let drizzleFraction = 0.4  // drizzle level relative to storm rain
     static let swellGap: ClosedRange<Double> = 45...150       // rain_ambience.py SWELL_GAP
     static let loneClapGap: ClosedRange<Double> = 90...300    // THUNDER_GAP
     static let ambienceStormGap: ClosedRange<Double> = 600...1500  // STORM_GAP
@@ -54,6 +55,10 @@ final class StormEngine: ObservableObject {
         var partyIntervalMinutes: Double = 30
         var partyHours: Double = 3
         var partyStormSeconds: Double = 60
+        /// Quiet rain between party storms. Besides sounding right, the
+        /// always-playing audio keeps iOS from suspending the app during the
+        /// gaps — without it, a locked phone never fires the next storm.
+        var drizzle = true
         // Rain mode extras (rain_ambience.py)
         var swells = true
         var occasionalStorms = false
@@ -120,19 +125,41 @@ final class StormEngine: ObservableObject {
         let expiry = Date().addingTimeInterval(options.partyHours * 3600)
         var storm = options
         storm.duration = options.partyStormSeconds
+        // With drizzle on, one continuous rain bed spans the whole party —
+        // quiet between storms, swelling up for each one. The always-playing
+        // audio is also what keeps iOS from suspending the app during the
+        // gaps when the phone is locked.
+        let drizzle = options.rain && options.drizzle
+        if drizzle {
+            storm.rain = false  // the party owns the bed, not each storm
+            await audio.startRain(volume: options.volume * Self.drizzleFraction)
+        }
         do {
             while Date() < expiry {
+                if drizzle {
+                    await audio.adjustRain(volume: options.volume, over: 3)
+                }
                 await runStormOnce(bulbs: bulbs, options: storm)
                 try Task.checkCancellation()
+                if drizzle {
+                    await audio.adjustRain(volume: options.volume * Self.drizzleFraction,
+                                           over: 5)
+                }
                 let wait = options.partyIntervalMinutes * 60
                 // Don't start a wait that would outlive the party.
                 if Date().addingTimeInterval(wait) >= expiry { break }
-                status = "Next storm around "
+                status = (drizzle ? "Drizzling — next storm around "
+                                  : "Next storm around ")
                     + Self.timeFormatter.string(from: Date().addingTimeInterval(wait))
                 try await Task.sleep(for: .seconds(wait))
             }
         } catch {
             // Cancelled during the idle wait; each storm cleans up after itself.
+        }
+        if drizzle {
+            // Runs in a fresh task: fades must survive this task's cancellation.
+            let audio = self.audio
+            await Task.detached { await audio.stopRain() }.value
         }
     }
 

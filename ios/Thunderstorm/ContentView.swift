@@ -19,6 +19,7 @@ struct ContentView: View {
     @State private var partyIntervalMinutes = 30.0
     @State private var partyHours = 3.0
     @State private var partyStormSeconds = 60.0
+    @State private var drizzle = true
     // Rain mode extras
     @State private var swells = true
     @State private var occasionalStorms = false
@@ -140,6 +141,15 @@ struct ContentView: View {
                 volumeSlider
                 Toggle("Rain", isOn: $rain)
                 Toggle("Thunder", isOn: $thunder)
+                Toggle("Drizzle between storms", isOn: $drizzle)
+                    .disabled(!rain)
+                if !rain || !drizzle {
+                    Text("Without the drizzle there is no audio between "
+                         + "storms, so iOS pauses the party when the phone "
+                         + "locks — keep the app open.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
         case .rain:
             Section("Rain") {
@@ -237,6 +247,7 @@ struct ContentView: View {
         options.partyIntervalMinutes = partyIntervalMinutes
         options.partyHours = partyHours
         options.partyStormSeconds = partyStormSeconds
+        options.drizzle = drizzle
         options.swells = swells
         options.occasionalStorms = occasionalStorms
         return options

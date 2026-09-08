@@ -29,6 +29,9 @@ final class AudioEngine: @unchecked Sendable {
         try? AVAudioSession.sharedInstance().setCategory(
             .playback, mode: .default, options: [.mixWithOthers])
 
+        // Thunder loudness is baked into the WAVs by generate_thunder.py's
+        // final gain+limit stage — no app-side boost, so the Python and iOS
+        // versions play identical audio.
         rainBuffer = Self.loadBuffer(named: "rain")
         clapBuffers = (1...4).compactMap { Self.loadBuffer(named: "thunder_\($0)") }
 
@@ -74,20 +77,34 @@ final class AudioEngine: @unchecked Sendable {
     // MARK: rain
 
     func startRain(volume: Double) async {
+        guard rainBuffer != nil else { return }
+        beginRainLoop()
+        await ramp(rainPlayer, to: Float(volume * Self.rainLevel), over: Self.fadeSeconds)
+    }
+
+    /// Deliberately synchronous: the awaitable scheduleBuffer overload
+    /// suspends until the buffer finishes playing — which, for a looping
+    /// buffer, is never. Keeping the call out of async code also keeps the
+    /// compiler from suggesting that overload.
+    private func beginRainLoop() {
         guard let buffer = rainBuffer else { return }
         ensureRunning()
         rainPlayer.volume = 0
-        // The completion-handler overload: in an async function the plain call
-        // resolves to the awaitable variant, which blocks until playback ends.
         rainPlayer.scheduleBuffer(buffer, at: nil, options: .loops, completionHandler: nil)
         rainPlayer.play()
-        await ramp(rainPlayer, to: Float(volume * Self.rainLevel), over: Self.fadeSeconds)
     }
 
     func stopRain() async {
         guard rainPlayer.isPlaying else { return }
         await ramp(rainPlayer, to: 0, over: Self.fadeSeconds)
         rainPlayer.stop()
+    }
+
+    /// Ramp the already-playing rain bed to a new level without stopping it —
+    /// party mode uses this to swell drizzle into storm rain and back.
+    func adjustRain(volume: Double, over seconds: Double) async {
+        guard rainPlayer.isPlaying else { return }
+        await ramp(rainPlayer, to: Float(volume * Self.rainLevel), over: seconds)
     }
 
     /// A passing squall layered over the bed (rain_swell.wav rises and falls

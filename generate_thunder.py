@@ -186,6 +186,11 @@ def make_thunder(duration, crack_intensity, brightness_hz, boom_intensity=0.0):
     sig /= np.max(np.abs(sig)) or 1.0
     sig = np.tanh(1.8 * sig)  # keep some drive but let the crack transient through
     sig /= np.max(np.abs(sig)) or 1.0
+    # Loudness stage: gain + tanh limiter (~+9 dB on the body). Players cap
+    # volume at 1.0, so this baked-in loudness is what lets the thunder stand
+    # above the rain bed and other apps' music on every platform.
+    sig = np.tanh(3.0 * sig)
+    sig /= np.max(np.abs(sig)) or 1.0
     tail = int(0.25 * SAMPLE_RATE)
     if tail < n:
         sig[-tail:] *= np.linspace(1, 0, tail)[:, None]

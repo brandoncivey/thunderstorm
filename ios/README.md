@@ -1,21 +1,28 @@
 # Thunderstorm for iPhone
 
-A SwiftUI translation of `thunderstorm.py`: the same lightning effect logic,
-the same WiZ UDP protocol (port 38899), and the same bundled thunder/rain WAVs
-(referenced from the repo root — one source of truth with the Python scripts).
+A SwiftUI translation of the desktop project with all three modes — **Storm**
+(`thunderstorm.py`), **Party** (`storm_party.sh`: a storm now, then every N
+minutes, auto-expiring), and **Rain** (`rain_ambience.py`: continuous rain with
+passing squalls, optional lone thunder, optional occasional full storms). Same
+lightning effect logic, same WiZ UDP protocol (port 38899), same bundled
+thunder/rain WAVs (referenced from the repo root — one source of truth with
+the Python scripts).
 
 Differences from the desktop version, by design:
 
 - **Audio** uses `AVAudioEngine`: the rain buffer loops gaplessly and fades are
   live volume ramps, so none of the `rain_fadein`/`rain_fade` crossfade clips
-  are needed.
-- **Discovery** is a subnet sweep (unicast `getPilot` to every host on the /24)
-  instead of a UDP broadcast — iOS requires a special Apple entitlement for
-  broadcast, and the sweep needs none.
-- **Background**: the app declares the `audio` background mode, so as long as
-  the rain is playing, the storm keeps running with the phone locked.
-- **Rain-ambience mode**: turn the "Lightning" toggle off for audio-only
-  rain + thunder, no bulbs needed.
+  are needed. Audio mixes with other apps (Spotify keeps playing).
+- **Discovery** is a subnet sweep (unicast `getPilot` to every host on the
+  Wi-Fi interface's subnet, netmask-derived) instead of a UDP broadcast — iOS
+  requires a special Apple entitlement for broadcast, and the sweep needs none.
+- **Background**: the app declares the `audio` background mode, so **while
+  audio is playing** the storm keeps running with the phone locked. Party mode
+  plays a quiet drizzle between storms precisely so the party survives in the
+  background; turn "Drizzle between storms" off and the gaps are silent, which
+  means iOS suspends the app when the phone locks — keep it in the foreground
+  in that configuration. The same applies to a Storm with rain and thunder
+  both disabled (lights-only has no audio to keep it alive).
 
 ## Build & run
 
@@ -50,10 +57,9 @@ run destination, and hit Run.
    (WiZ app → bulb → Settings → Device Info).
 3. Start the storm.
 
-## Not yet ported
+## Caveats
 
-- Party mode / scheduling (intervals with auto-expiry) — on iOS this would be
-  a foreground feature or use notifications; the shell daemons don't map 1:1.
-- Rain swells (`rain_swell.wav` overlays) — easy to add as another player node.
-- The storm stops if the app is force-quit; state restore only runs on a
+- The storm stops if the app is force-quit; bulb state restore only runs on a
   Stop-button or duration-elapsed exit.
+- Apps signed with a free Apple ID expire after 7 days and need re-running
+  from Xcode.
