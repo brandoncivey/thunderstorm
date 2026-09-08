@@ -4,6 +4,9 @@ This runs a realistic lightning + thunder light show on your WiZ bulbs by talkin
 to them **directly over your local Wi‑Fi** (UDP port 38899). No cloud, no HomeKit,
 precise flash timing. Works from a Mac or any computer with Python 3.
 
+There's also a native **iPhone app** with the same Storm, Party, and Rain modes —
+see [`ios/README.md`](ios/README.md) to build and install it.
+
 ---
 
 ## 1. Enable the WiZ local API
