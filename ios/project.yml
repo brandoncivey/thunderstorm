@@ -1,0 +1,45 @@
+# XcodeGen spec — generates Thunderstorm.xcodeproj (which stays out of git).
+#   brew install xcodegen
+#   cd ios && xcodegen generate && open Thunderstorm.xcodeproj
+name: Thunderstorm
+options:
+  bundleIdPrefix: dev.bivey
+  createIntermediateGroups: true
+targets:
+  Thunderstorm:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Thunderstorm
+      # The sound files live at the repo root, shared with the Python scripts.
+      - path: ../rain.wav
+        buildPhase: resources
+      - path: ../rain_swell.wav
+        buildPhase: resources
+      - path: ../thunder_1.wav
+        buildPhase: resources
+      - path: ../thunder_2.wav
+        buildPhase: resources
+      - path: ../thunder_3.wav
+        buildPhase: resources
+      - path: ../thunder_4.wav
+        buildPhase: resources
+    info:
+      path: Thunderstorm/Info.plist
+      properties:
+        UILaunchScreen: {}
+        NSLocalNetworkUsageDescription: >-
+          Thunderstorm talks directly to your WiZ bulbs over your home network.
+        # Continuous audio (the rain bed) keeps the app alive in the
+        # background, so the storm keeps running when the phone locks.
+        UIBackgroundModes: [audio]
+    settings:
+      base:
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.9"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # Signing survives `xcodegen generate` (picking a Team in Xcode's UI
+        # only edits the generated project, which regeneration overwrites).
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: HX69VP6DHD   # Brandon IVEY (Personal Team)
