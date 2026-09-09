@@ -87,6 +87,18 @@ final class StormEngine: ObservableObject {
     // MARK: - One storm (the building block every mode uses)
 
     private func runStormOnce(bulbs: [WiZBulb], options: Options) async {
+        // Keep the phone's Wi-Fi radio awake for the storm's duration so the
+        // rapid flash sequences aren't smeared by power-save wake latency.
+        let keepalive: Task<Void, Never>? = bulbs.isEmpty ? nil : Task.detached {
+            var i = 0
+            while !Task.isCancelled {
+                bulbs[i % bulbs.count].nudge()
+                i += 1
+                try? await Task.sleep(for: .seconds(0.25))
+            }
+        }
+        defer { keepalive?.cancel() }
+
         // Snapshot every bulb so the room goes back to how it was.
         for bulb in bulbs { await bulb.snapshot() }
         if options.rain {
@@ -257,16 +269,22 @@ final class StormEngine: ObservableObject {
             }
         }
 
+        // Holds run ~30ms longer than the Python constants: pywizlight awaits
+        // each bulb's ack before its sleep starts, so Python's effective holds
+        // are its coded values plus a round-trip. Fire-and-forget sends sleep
+        // immediately — without the pad, flashes are shorter than the Mac's
+        // and read weaker.
+
         // Main flash.
         flash(Self.flashRGB, Self.flashBrightness)
-        try await sleep(random: 0.04...0.12)
+        try await sleep(random: 0.07...0.15)
 
         // Flickering multi-strike (lightning rarely fires just once).
         for _ in 0..<Int.random(in: 0...3) {
             ambient(bulbs)
-            try await sleep(random: 0.03...0.09)
+            try await sleep(random: 0.06...0.12)
             flash(Self.flashRGB, Int.random(in: 120...255))
-            try await sleep(random: 0.03...0.10)
+            try await sleep(random: 0.06...0.13)
         }
 
         // Back to the stormy dark.
@@ -276,7 +294,7 @@ final class StormEngine: ObservableObject {
         if Double.random(in: 0..<1) < 0.4 {
             try await sleep(random: 0.15...0.5)
             flash((200, 210, 255), Int.random(in: 40...100))
-            try await sleep(random: 0.05...0.12)
+            try await sleep(random: 0.08...0.15)
             ambient(bulbs)
         }
     }
@@ -289,7 +307,7 @@ final class StormEngine: ObservableObject {
         let clapVolume = volume * (1.0 - 0.45 * distance)
         let audio = self.audio
         Task.detached {
-            try? await Task.sleep(for: .seconds(delay))
+            try? await Task.sleep(for: .seconds(delay), tolerance: .zero)
             audio.playClap(distance: distance, volume: clapVolume)
         }
     }
@@ -300,7 +318,10 @@ final class StormEngine: ObservableObject {
         }
     }
 
+    /// Effect timing wants exactness: iOS may otherwise coalesce timers by
+    /// tens of milliseconds, which smears the fast flash/flicker holds enough
+    /// to make flashes look weak (the bulb's fade never completes).
     private func sleep(random range: ClosedRange<Double>) async throws {
-        try await Task.sleep(for: .seconds(Double.random(in: range)))
+        try await Task.sleep(for: .seconds(Double.random(in: range)), tolerance: .zero)
     }
 }
