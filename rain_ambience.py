@@ -27,7 +27,7 @@ import thunderstorm as ts
 # ---------------------------------------------------------------------------
 # Tunables
 # ---------------------------------------------------------------------------
-RAIN_LEVEL = 0.5              # rain bed level relative to --volume
+RAIN_LEVEL = 0.35              # rain bed level relative to --volume
 SWELL_LEVEL = 0.45            # swell overlay level relative to --volume
 SWELL_GAP = (45.0, 150.0)     # seconds between swells (min, max)
 THUNDER_GAP = (90.0, 300.0)   # seconds between lone thunderclaps
