@@ -163,11 +163,22 @@ python3 -m venv .venv
 then edit the `cd`/`DIR` path at the top of each script to match the folder's
 location on that machine.
 
+### Creating the Shortcuts automatically
+
+```bash
+./setup_shortcuts.py
+```
+
+builds, signs, and imports Shortcuts for all five actions (Thunderstorm,
+Start/Stop Storm Party, Start/Stop Rain) — you just click "Add Shortcut" in
+each dialog. One-time: enable **Shortcuts → Settings → Advanced → Allow
+Running Scripts**. Re-runs skip shortcuts that already exist.
+
 ### One-shot storm (`run_thunderstorm.sh`)
 
-Runs a single storm (edit the flags inside to taste). To trigger it from
-Spotlight/Siri, make an Apple **Shortcut**: Shortcuts app → new shortcut → add
-a **"Run Shell Script"** action (shell `/bin/bash`, input **Nothing**) with:
+Runs a single storm (edit the flags inside to taste). To make its Shortcut by
+hand instead: Shortcuts app → new shortcut → add a **"Run Shell Script"**
+action (shell `/bin/bash`, input **Nothing**) with:
 
 ```
 /path/to/this/folder/run_thunderstorm.sh
