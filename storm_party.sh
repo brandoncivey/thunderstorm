@@ -5,6 +5,8 @@
 #
 # Usage:
 #   ./storm_party.sh start [hours] [interval_minutes]   # defaults: 3h, every 30m
+#   ./storm_party.sh start 3 30 --video   # + the Rio storm video, fullscreen
+#                                         #   during each storm
 #   ./storm_party.sh stop
 #   ./storm_party.sh status
 
@@ -20,11 +22,24 @@ case "$1" in
       echo "Storm party already running (pid $(cat "$PIDFILE")). Run '$0 stop' first."
       exit 1
     fi
-    HOURS="${2:-3}"
-    INTERVAL_MIN="${3:-30}"
+    shift
+    VIDEO=""
+    POS=()
+    for a in "$@"; do
+      case "$a" in
+        --video) VIDEO=1 ;;
+        *) POS+=("$a") ;;
+      esac
+    done
+    HOURS="${POS[0]:-3}"
+    INTERVAL_MIN="${POS[1]:-30}"
+    # --video rides along into each storm: thunderstorm.py opens the looping
+    # fullscreen video when the storm starts and closes it when it passes.
+    [ -n "$VIDEO" ] && STORM_ARGS="$STORM_ARGS --video"
     (
       # Forward a stop to whatever is running: a storm gets SIGTERM and
-      # restores the bulbs before exiting; a sleep just dies.
+      # restores the bulbs (and closes its video) before exiting; a sleep
+      # just dies.
       trap 'kill -TERM "$child" 2>/dev/null; rm -f "$PIDFILE"; exit 0' TERM INT
       end=$(( $(date +%s) + HOURS * 3600 ))
       while [ "$(date +%s)" -lt "$end" ]; do
@@ -60,7 +75,7 @@ case "$1" in
     fi
     ;;
   *)
-    echo "usage: $0 start [hours] [interval_minutes] | stop | status"
+    echo "usage: $0 start [hours] [interval_minutes] [--video] | stop | status"
     exit 1
     ;;
 esac

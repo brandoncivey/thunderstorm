@@ -110,6 +110,7 @@ speaker / HomePod via AirPlay). Add `--no-rain` to skip the rain, or
 | `--no-audio` | Lights only, no thunder or rain sounds | audio on |
 | `--no-rain` | Skip the continuous rain bed (thunder still plays) | rain on |
 | `--volume` | Master audio volume, `0.0`–`1.0` (distant strikes are automatically quieter) | `1.0` |
+| `--video` | Play `rio_storm.mp4` fullscreen on loop for the storm's duration (or pass a path to another video). Needs `ffplay` (`brew install ffmpeg`) | off |
 | `--ips` | One or more bulb IPs. Skips auto-discovery | auto-discover |
 | `--broadcast` | Broadcast address for discovery, e.g. `192.168.1.255` | `255.255.255.255` |
 | `--duration` | Seconds to run. Use `0` to run until you Ctrl+C | `60` |
@@ -129,6 +130,15 @@ Open `thunderstorm.py` in any text editor and tweak the values near the top:
 - `INTENSITY_PRESETS` — the min/max seconds between strikes for each intensity.
 - `RESTORE_RGB` / `RESTORE_BRIGHTNESS` — the fallback look on exit, used only
   when a bulb's pre-storm state couldn't be read.
+
+### The storm video
+
+`rio_storm.mp4` is a seamlessly-looping, procedurally-rendered night storm
+over Rio — lightning striking behind Corcovado, the lit Christ statue, city
+lights, rain. It's silent on purpose: the scripts own the audio, so thunder
+stays synced to the bulbs. Regenerate or restyle it with
+`python3 generate_rio_video.py` (needs `numpy`, `pillow`, and `ffmpeg`; takes
+a few minutes).
 
 ### Customize the thunder
 
@@ -195,6 +205,7 @@ after a time limit so a forgotten party mode doesn't storm all night:
 ```bash
 ./storm_party.sh start           # storm now, then every 30 min, stops after 3 h
 ./storm_party.sh start 4 60      # every 60 min for 4 hours
+./storm_party.sh start 3 30 --video   # the Rio video plays during each storm
 ./storm_party.sh stop            # stop now (mid-storm stop still restores bulbs)
 ./storm_party.sh status
 ```

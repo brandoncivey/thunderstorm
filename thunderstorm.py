@@ -109,6 +109,25 @@ def load_rain_file():
     return path if os.path.exists(path) else None
 
 
+DEFAULT_VIDEO = os.path.join(_SCRIPT_DIR, "rio_storm.mp4")
+
+
+def start_video(path):
+    """Play a storm video fullscreen on loop (silent — the storm owns the
+    audio) via ffplay. Returns the player process, or None if unavailable."""
+    if not os.path.exists(path):
+        print(f"Note: video not found at {path}. Continuing without video.")
+        return None
+    exe = shutil.which("ffplay")
+    if exe is None:
+        print("Note: ffplay not found (brew install ffmpeg). "
+              "Continuing without video.")
+        return None
+    return subprocess.Popen(
+        [exe, "-fs", "-loop", "0", "-an", "-loglevel", "quiet", path],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 # How long the next rain clip overlaps the ending one. Each clip carries a
 # 0.4s fade at both edges, so an ~0.8s overlap crossfades them with no dip;
 # it also absorbs the player's ~0.1-0.3s startup latency.
@@ -397,6 +416,11 @@ async def main():
                    help="Skip the continuous rain bed (thunder still plays).")
     p.add_argument("--volume", type=float, default=1.0,
                    help="Master audio volume, 0.0-1.0 (default 1.0).")
+    p.add_argument("--video", nargs="?", const=DEFAULT_VIDEO, default=None,
+                   metavar="PATH",
+                   help="Play a looping storm video fullscreen for the "
+                        "storm's duration (default: rio_storm.mp4 next to "
+                        "the script). Requires ffplay.")
     args = p.parse_args()
     volume = max(0.0, min(1.0, args.volume))
 
@@ -441,6 +465,8 @@ async def main():
         # Runs for the whole storm; cancelled (and its player killed) on exit.
         asyncio.create_task(rain_loop(rain_file, player, volume * RAIN_VOLUME))
 
+    video_proc = start_video(args.video) if args.video else None
+
     storm = asyncio.create_task(
         run_storm(bulbs, args.duration, gap_range, thunder_files, player, volume))
     stopper = asyncio.create_task(stop.wait())
@@ -452,6 +478,8 @@ async def main():
         if storm in done:
             storm.result()  # surface any error from the storm itself
     finally:
+        if video_proc is not None and video_proc.poll() is None:
+            video_proc.terminate()
         # Cancel whatever is still in flight (the storm loop, pending
         # thunderclaps) so the restore is the last thing that touches the bulbs.
         for t in asyncio.all_tasks():
