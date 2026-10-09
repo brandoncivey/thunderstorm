@@ -128,6 +128,20 @@ def start_video(path):
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+def start_appletv_video(path):
+    """Stream the storm video to the paired Apple TV via appletv.py, which
+    loops it until we terminate the process (same lifecycle as ffplay)."""
+    if not os.path.exists(os.path.join(_SCRIPT_DIR, ".appletv.json")):
+        print("Note: no Apple TV paired. Run `appletv.py pair` once "
+              "(see README). Continuing without video.")
+        return None
+    if not os.path.exists(path):
+        print(f"Note: video not found at {path}. Continuing without video.")
+        return None
+    return subprocess.Popen(
+        [sys.executable, os.path.join(_SCRIPT_DIR, "appletv.py"), "play", path])
+
+
 # How long the next rain clip overlaps the ending one. Each clip carries a
 # 0.4s fade at both edges, so an ~0.8s overlap crossfades them with no dip;
 # it also absorbs the player's ~0.1-0.3s startup latency.
@@ -418,9 +432,13 @@ async def main():
                    help="Master audio volume, 0.0-1.0 (default 1.0).")
     p.add_argument("--video", nargs="?", const=DEFAULT_VIDEO, default=None,
                    metavar="PATH",
-                   help="Play a looping storm video fullscreen for the "
-                        "storm's duration (default: rio_storm.mp4 next to "
-                        "the script). Requires ffplay.")
+                   help="Play a looping storm video fullscreen on this "
+                        "machine for the storm's duration (default: "
+                        "rio_storm.mp4 next to the script). Requires ffplay.")
+    p.add_argument("--appletv", action="store_true",
+                   help="Stream the storm video to the paired Apple TV for "
+                        "the storm's duration instead of this machine's "
+                        "screen (one-time setup: appletv.py pair).")
     args = p.parse_args()
     volume = max(0.0, min(1.0, args.volume))
 
@@ -465,7 +483,12 @@ async def main():
         # Runs for the whole storm; cancelled (and its player killed) on exit.
         asyncio.create_task(rain_loop(rain_file, player, volume * RAIN_VOLUME))
 
-    video_proc = start_video(args.video) if args.video else None
+    if args.appletv:
+        video_proc = start_appletv_video(args.video or DEFAULT_VIDEO)
+    elif args.video:
+        video_proc = start_video(args.video)
+    else:
+        video_proc = None
 
     storm = asyncio.create_task(
         run_storm(bulbs, args.duration, gap_range, thunder_files, player, volume))

@@ -24,18 +24,21 @@ case "$1" in
     fi
     shift
     VIDEO=""
+    APPLETV=""
     POS=()
     for a in "$@"; do
       case "$a" in
         --video) VIDEO=1 ;;
+        --appletv) APPLETV=1 ;;
         *) POS+=("$a") ;;
       esac
     done
     HOURS="${POS[0]:-3}"
     INTERVAL_MIN="${POS[1]:-30}"
-    # --video rides along into each storm: thunderstorm.py opens the looping
-    # fullscreen video when the storm starts and closes it when it passes.
+    # --video/--appletv ride along into each storm: thunderstorm.py starts
+    # the looping video when the storm starts and stops it when it passes.
     [ -n "$VIDEO" ] && STORM_ARGS="$STORM_ARGS --video"
+    [ -n "$APPLETV" ] && STORM_ARGS="$STORM_ARGS --appletv"
     (
       # Forward a stop to whatever is running: a storm gets SIGTERM and
       # restores the bulbs (and closes its video) before exiting; a sleep
@@ -75,7 +78,7 @@ case "$1" in
     fi
     ;;
   *)
-    echo "usage: $0 start [hours] [interval_minutes] [--video] | stop | status"
+    echo "usage: $0 start [hours] [interval_minutes] [--video|--appletv] | stop | status"
     exit 1
     ;;
 esac

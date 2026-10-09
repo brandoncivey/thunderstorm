@@ -131,6 +131,27 @@ Open `thunderstorm.py` in any text editor and tweak the values near the top:
 - `RESTORE_RGB` / `RESTORE_BRIGHTNESS` — the fallback look on exit, used only
   when a bulb's pre-storm state couldn't be read.
 
+### Stream the video to an Apple TV
+
+One-time pairing (a PIN appears on the TV; run from a normal terminal):
+
+```bash
+./.venv/bin/pip install pyatv
+./.venv/bin/python3 appletv.py pair        # add --host <ip> if it isn't found
+```
+
+Then `--appletv` instead of `--video` sends the storm video to the TV for
+each storm's duration:
+
+```bash
+python3 thunderstorm.py --appletv
+./storm_party.sh start 3 30 --appletv
+```
+
+The Mac serves the video to the TV over the local network, so both must be
+on the same Wi-Fi. Credentials land in `.appletv.json` (gitignored — they
+grant control of the TV).
+
 ### The storm video
 
 `rio_storm.mp4` is a seamlessly-looping, procedurally-rendered night storm

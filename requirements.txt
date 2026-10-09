@@ -1,2 +1,4 @@
 pywizlight>=0.6.6
-numpy  # only needed to regenerate thunder_*.wav via generate_thunder.py
+numpy   # only needed to regenerate the sounds/video (generate_*.py)
+pillow  # only needed to regenerate the video (generate_rio_video.py)
+pyatv   # only needed for --appletv streaming (appletv.py)
