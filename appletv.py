@@ -91,13 +91,65 @@ async def scan(loop, hosts=None, timeout=8):
 # Commands
 # ---------------------------------------------------------------------------
 
+def _describe(conf):
+    info = conf.device_info
+    print(f"{conf.name} @ {conf.address}  id={conf.identifier}")
+    print(f"  model: {info.model_str!r}  os: {info.operating_system.name} "
+          f"{info.version or '?'}")
+    for s in conf.services:
+        feats = s.properties.get("ft") or s.properties.get("features") or "-"
+        print(f"  {s.protocol.name}: port {s.port}  pairing={s.pairing.name}  "
+              f"features={feats}")
+
+
 async def cmd_scan(loop, args):
     atvs = await scan(loop, hosts=[args.host] if args.host else None)
     if not atvs:
         print("No Apple TVs found.")
         return 1
     for c in atvs:
-        print(f"{c.name} @ {c.address}  id={c.identifier}")
+        _describe(c)
+    return 0
+
+
+async def cmd_diag(loop, args):
+    """Everything needed to debug a streaming failure, in one pasteable run."""
+    import logging
+    log_path = os.path.join(_SCRIPT_DIR, "appletv_debug.log")
+    logging.basicConfig(filename=log_path, filemode="w", level=logging.DEBUG)
+    print(f"pyatv {pyatv.const.__version__ if hasattr(pyatv.const, '__version__') else ''}".strip())
+
+    hosts = [args.host] if args.host else None
+    if hosts is None and os.path.exists(CRED_FILE):
+        hosts = [json.load(open(CRED_FILE))["address"]]
+    atvs = await scan(loop, hosts=hosts)
+    if not atvs:
+        atvs = await scan(loop)
+    if not atvs:
+        print("No devices found at all.")
+        return 1
+    for c in atvs:
+        _describe(c)
+
+    if not os.path.exists(CRED_FILE):
+        print("Not paired — stopping here.")
+        return 1
+    atv = await _connect(loop, airplay_version=args.airplay_version)
+    print("Connected; attempting a 12s play of the storm video...")
+    task = asyncio.ensure_future(atv.stream.play_url(DEFAULT_VIDEO))
+    done, _ = await asyncio.wait({task}, timeout=12)
+    if task in done and task.exception():
+        print(f"play_url FAILED: {task.exception()!r}")
+    else:
+        print("playback started OK — stopping it.")
+        task.cancel()
+        try:
+            await atv.remote_control.stop()
+        except Exception:
+            pass
+    atv.close()
+    print(f"\nProtocol log written to {log_path} — paste its tail "
+          "(last ~40 lines) when reporting.")
     return 0
 
 
@@ -233,7 +285,7 @@ async def cmd_play(loop, args):
 
 async def main():
     p = argparse.ArgumentParser(description="Apple TV streaming for the storm")
-    p.add_argument("command", choices=["scan", "pair", "play"])
+    p.add_argument("command", choices=["scan", "pair", "play", "diag"])
     p.add_argument("video", nargs="?", default=None,
                    help="Video file for 'play' (default: rio_storm.mp4).")
     p.add_argument("--host", default=None,
@@ -249,8 +301,8 @@ async def main():
         import logging
         logging.basicConfig(level=logging.DEBUG)
     loop = asyncio.get_running_loop()
-    return await {"scan": cmd_scan, "pair": cmd_pair, "play": cmd_play
-                  }[args.command](loop, args)
+    return await {"scan": cmd_scan, "pair": cmd_pair, "play": cmd_play,
+                  "diag": cmd_diag}[args.command](loop, args)
 
 
 if __name__ == "__main__":
