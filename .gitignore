@@ -4,4 +4,3 @@ __pycache__/
 .storm_party.pid
 *.zip
 .claude/settings.local.json
-.appletv.json
