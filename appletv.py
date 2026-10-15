@@ -134,7 +134,8 @@ async def cmd_diag(loop, args):
     if not os.path.exists(CRED_FILE):
         print("Not paired — stopping here.")
         return 1
-    atv = await _connect(loop, airplay_version=args.airplay_version)
+    atv = await _connect(loop, airplay_version=args.airplay_version,
+                         password=args.password)
     print("Connected; attempting a 12s play of the storm video...")
     task = asyncio.ensure_future(atv.stream.play_url(DEFAULT_VIDEO))
     done, _ = await asyncio.wait({task}, timeout=12)
@@ -185,14 +186,17 @@ async def cmd_pair(loop, args):
     return 0
 
 
-async def _connect(loop, airplay_version=None):
+async def _connect(loop, airplay_version=None, password=None):
     if not os.path.exists(CRED_FILE):
         sys.exit("Not paired with an Apple TV yet. Run: appletv.py pair")
     saved = json.load(open(CRED_FILE))
-    # An explicitly chosen AirPlay version sticks, so later --appletv runs
-    # (which launch this script with no flags) inherit the working choice.
+    # Explicit choices stick, so later --appletv runs (which launch this
+    # script with no flags) inherit whatever combination worked.
     if airplay_version:
         saved["airplay_version"] = airplay_version
+    if password:
+        saved["airplay_password"] = password
+    if airplay_version or password:
         json.dump(saved, open(CRED_FILE, "w"))
     version = saved.get("airplay_version", "auto")
     # set_credentials returns False if the scan result is missing the AirPlay
@@ -220,7 +224,13 @@ async def _connect(loop, airplay_version=None):
     service = conf.get_service(Protocol.AirPlay)
     features = (service.properties.get("ft")
                 or service.properties.get("features") or "(none advertised)")
-    print(f"AirPlay features: {features}  version: {version}")
+    if saved.get("airplay_password"):
+        # tvOS 26.5+/27 reject pyatv's normal AirPlay session (upstream
+        # pyatv issue #2866); setting an AirPlay password on the TV forces
+        # an older auth path that still works.
+        service.password = saved["airplay_password"]
+    print(f"AirPlay features: {features}  version: {version}  "
+          f"password: {'set' if saved.get('airplay_password') else 'no'}")
     storage = MemoryStorage()
     settings = await storage.get_settings(conf)
     settings.protocols.raop.protocol_version = AIRPLAY_VERSIONS[version]
@@ -261,7 +271,8 @@ async def cmd_play(loop, args):
     video = os.path.abspath(args.video or DEFAULT_VIDEO)
     if not os.path.exists(video):
         sys.exit(f"Video not found: {video}")
-    atv = await _connect(loop, airplay_version=args.airplay_version)
+    atv = await _connect(loop, airplay_version=args.airplay_version,
+                         password=args.password)
 
     stopping = asyncio.Event()
     for sig in (signal.SIGINT, signal.SIGTERM):
@@ -294,6 +305,10 @@ async def main():
                    default=None,
                    help="Force the AirPlay protocol version for 'play'. "
                         "The choice is remembered for future runs.")
+    p.add_argument("--password", default=None,
+                   help="The TV's AirPlay password, if one is set (the known "
+                        "workaround for tvOS 27 rejecting pyatv sessions). "
+                        "Remembered for future runs.")
     p.add_argument("--debug", action="store_true",
                    help="Verbose pyatv protocol logging.")
     args = p.parse_args()
