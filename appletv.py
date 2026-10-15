@@ -131,14 +131,24 @@ async def _connect(loop):
     if not os.path.exists(CRED_FILE):
         sys.exit("Not paired with an Apple TV yet. Run: appletv.py pair")
     saved = json.load(open(CRED_FILE))
-    atvs = await scan(loop, hosts=[saved["address"]], timeout=8)
-    if not atvs:   # it may have a new DHCP address: try the slower paths
-        atvs = await scan(loop, timeout=8)
-        atvs = [c for c in atvs if c.identifier == saved["identifier"]]
-    if not atvs:
-        sys.exit(f"Paired Apple TV ({saved['name']}) not found on the network.")
-    conf = atvs[0]
-    conf.set_credentials(Protocol.AirPlay, saved["credentials"])
+    # set_credentials returns False if the scan result is missing the AirPlay
+    # service row (unicast scans sometimes omit it) — connecting then would
+    # yield "not authenticated" at play time, so only accept a config that
+    # actually took the credentials.
+    conf = None
+    for hosts in ([saved["address"]], None):
+        for c in await scan(loop, hosts=hosts, timeout=8):
+            if hosts is None and c.identifier != saved["identifier"]:
+                continue
+            if c.set_credentials(Protocol.AirPlay, saved["credentials"]):
+                conf = c
+                break
+        if conf:
+            break
+    if conf is None:
+        sys.exit(f"Couldn't find {saved['name']} with an AirPlay service on "
+                 "the network. If it's powered and awake, re-pair with: "
+                 "appletv.py pair")
     atv = await pyatv.connect(conf, loop)
     if str(conf.address) != saved["address"]:
         saved["address"] = str(conf.address)
@@ -156,6 +166,10 @@ async def _play_forever(atv, video):
             await atv.stream.play_url(video)
         except asyncio.CancelledError:
             raise
+        except pyatv.exceptions.AuthenticationError as exc:
+            # Retrying can't fix stale/rejected credentials.
+            sys.exit(f"The Apple TV rejected our credentials ({exc}). "
+                     "Re-pair with: appletv.py pair")
         except Exception as exc:
             print(f"play_url failed ({exc}); retrying in 5s.\n"
                   "  (If this repeats, check that macOS's firewall allows "
