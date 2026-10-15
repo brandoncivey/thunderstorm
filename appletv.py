@@ -10,24 +10,20 @@ streams the video to the TV for each storm. Manual use:
     ./.venv/bin/python3 appletv.py scan
     ./.venv/bin/python3 appletv.py play [video.mp4]      # until Ctrl+C
 
-The video file is served to the Apple TV over a temporary local HTTP server,
-so the Mac and the TV must be on the same network.
+pyatv serves the video file to the Apple TV itself (its play_url accepts a
+local path and runs a proper range-capable web server for it), so the Mac
+and the TV just need to be on the same network.
 """
 
 import argparse
 import asyncio
-import functools
 import json
 import os
 import re
 import signal
-import socket
 import subprocess
 import sys
-import threading
 import time
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import quote
 
 import pyatv
 from pyatv.const import Protocol
@@ -83,70 +79,6 @@ async def scan(loop, hosts=None, timeout=8):
         if fallback:
             atvs = await pyatv.scan(loop, hosts=fallback, timeout=timeout)
     return atvs
-
-
-# ---------------------------------------------------------------------------
-# A tiny HTTP server for the video: SimpleHTTPRequestHandler plus the Range
-# support the Apple TV's player insists on.
-# ---------------------------------------------------------------------------
-
-class RangeHandler(SimpleHTTPRequestHandler):
-    def log_message(self, *args):
-        pass
-
-    def send_head(self):
-        path = self.translate_path(self.path)
-        if not os.path.isfile(path):
-            self.send_error(404)
-            return None
-        size = os.path.getsize(path)
-        start, end = 0, size - 1
-        header_range = self.headers.get("Range", "")
-        if header_range.startswith("bytes="):
-            m = re.match(r"bytes=(\d*)-(\d*)", header_range)
-            if m:
-                if m.group(1):
-                    start = int(m.group(1))
-                if m.group(2):
-                    end = min(int(m.group(2)), size - 1)
-            self.send_response(206)
-            self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
-        else:
-            self.send_response(200)
-        self._remaining = end - start + 1
-        self.send_header("Accept-Ranges", "bytes")
-        self.send_header("Content-Type", "video/mp4")
-        self.send_header("Content-Length", str(self._remaining))
-        self.end_headers()
-        f = open(path, "rb")
-        f.seek(start)
-        return f
-
-    def copyfile(self, source, outputfile):
-        remaining = getattr(self, "_remaining", None)
-        if remaining is None:
-            return super().copyfile(source, outputfile)
-        while remaining > 0:
-            chunk = source.read(min(65536, remaining))
-            if not chunk:
-                break
-            outputfile.write(chunk)
-            remaining -= len(chunk)
-
-
-def serve_video(video, toward_ip):
-    """Serve the video's directory on an ephemeral port; return its URL."""
-    handler = functools.partial(
-        RangeHandler, directory=os.path.dirname(os.path.abspath(video)))
-    server = ThreadingHTTPServer(("0.0.0.0", 0), handler)
-    threading.Thread(target=server.serve_forever, daemon=True).start()
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect((toward_ip, 1))       # which of our IPs the TV can reach
-    my_ip = s.getsockname()[0]
-    s.close()
-    url = (f"http://{my_ip}:{server.server_address[1]}"
-           f"/{quote(os.path.basename(video))}")
-    return url, server
 
 
 # ---------------------------------------------------------------------------
@@ -211,20 +143,24 @@ async def _connect(loop):
     if str(conf.address) != saved["address"]:
         saved["address"] = str(conf.address)
         json.dump(saved, open(CRED_FILE, "w"))
-    return atv, str(conf.address)
+    return atv
 
 
-async def _play_forever(atv, url):
+async def _play_forever(atv, video):
     """Keep the video going: if play_url returns when playback merely starts
-    (behavior varies by tvOS), wait out the clip before re-sending."""
+    (behavior varies by tvOS), wait out the clip before re-sending. pyatv
+    serves the local file itself, with proper Range support."""
     while True:
         began = time.monotonic()
         try:
-            await atv.stream.play_url(url)
+            await atv.stream.play_url(video)
         except asyncio.CancelledError:
             raise
         except Exception as exc:
-            print(f"play_url failed ({exc}); retrying in 5s")
+            print(f"play_url failed ({exc}); retrying in 5s.\n"
+                  "  (If this repeats, check that macOS's firewall allows "
+                  "incoming connections for Python — the TV fetches the "
+                  "video from this machine.)")
             await asyncio.sleep(5)
             continue
         elapsed = time.monotonic() - began
@@ -233,11 +169,10 @@ async def _play_forever(atv, url):
 
 
 async def cmd_play(loop, args):
-    video = args.video or DEFAULT_VIDEO
+    video = os.path.abspath(args.video or DEFAULT_VIDEO)
     if not os.path.exists(video):
         sys.exit(f"Video not found: {video}")
-    atv, address = await _connect(loop)
-    url, server = serve_video(video, address)
+    atv = await _connect(loop)
 
     stopping = asyncio.Event()
     for sig in (signal.SIGINT, signal.SIGTERM):
@@ -245,7 +180,7 @@ async def cmd_play(loop, args):
 
     print(f"Streaming {os.path.basename(video)} to the Apple TV "
           "(Ctrl+C / SIGTERM stops).")
-    player = asyncio.ensure_future(_play_forever(atv, url))
+    player = asyncio.ensure_future(_play_forever(atv, video))
     await stopping.wait()
     player.cancel()
     try:
@@ -256,7 +191,6 @@ async def cmd_play(loop, args):
         except Exception:
             pass
     atv.close()
-    server.shutdown()
     return 0
 
 
