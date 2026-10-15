@@ -27,6 +27,12 @@ import time
 
 import pyatv
 from pyatv.const import Protocol
+from pyatv.settings import AirPlayVersion
+from pyatv.storage.memory_storage import MemoryStorage
+
+AIRPLAY_VERSIONS = {"auto": AirPlayVersion.Auto,
+                    "1": AirPlayVersion.V1,
+                    "2": AirPlayVersion.V2}
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CRED_FILE = os.path.join(_SCRIPT_DIR, ".appletv.json")
@@ -127,10 +133,16 @@ async def cmd_pair(loop, args):
     return 0
 
 
-async def _connect(loop):
+async def _connect(loop, airplay_version=None):
     if not os.path.exists(CRED_FILE):
         sys.exit("Not paired with an Apple TV yet. Run: appletv.py pair")
     saved = json.load(open(CRED_FILE))
+    # An explicitly chosen AirPlay version sticks, so later --appletv runs
+    # (which launch this script with no flags) inherit the working choice.
+    if airplay_version:
+        saved["airplay_version"] = airplay_version
+        json.dump(saved, open(CRED_FILE, "w"))
+    version = saved.get("airplay_version", "auto")
     # set_credentials returns False if the scan result is missing the AirPlay
     # service row (unicast scans sometimes omit it) — connecting then would
     # yield "not authenticated" at play time, so only accept a config that
@@ -149,7 +161,18 @@ async def _connect(loop):
         sys.exit(f"Couldn't find {saved['name']} with an AirPlay service on "
                  "the network. If it's powered and awake, re-pair with: "
                  "appletv.py pair")
-    atv = await pyatv.connect(conf, loop)
+
+    # pyatv picks AirPlay v1 vs v2 from the service's advertised features;
+    # a missing/odd advertisement sends it down the legacy path, which modern
+    # Apple TVs reject as "not authenticated". --airplay-version overrides.
+    service = conf.get_service(Protocol.AirPlay)
+    features = (service.properties.get("ft")
+                or service.properties.get("features") or "(none advertised)")
+    print(f"AirPlay features: {features}  version: {version}")
+    storage = MemoryStorage()
+    settings = await storage.get_settings(conf)
+    settings.protocols.raop.protocol_version = AIRPLAY_VERSIONS[version]
+    atv = await pyatv.connect(conf, loop, storage=storage)
     if str(conf.address) != saved["address"]:
         saved["address"] = str(conf.address)
         json.dump(saved, open(CRED_FILE, "w"))
@@ -186,7 +209,7 @@ async def cmd_play(loop, args):
     video = os.path.abspath(args.video or DEFAULT_VIDEO)
     if not os.path.exists(video):
         sys.exit(f"Video not found: {video}")
-    atv = await _connect(loop)
+    atv = await _connect(loop, airplay_version=args.airplay_version)
 
     stopping = asyncio.Event()
     for sig in (signal.SIGINT, signal.SIGTERM):
@@ -215,7 +238,16 @@ async def main():
                    help="Video file for 'play' (default: rio_storm.mp4).")
     p.add_argument("--host", default=None,
                    help="Apple TV IP, if discovery can't find it.")
+    p.add_argument("--airplay-version", choices=["auto", "1", "2"],
+                   default=None,
+                   help="Force the AirPlay protocol version for 'play'. "
+                        "The choice is remembered for future runs.")
+    p.add_argument("--debug", action="store_true",
+                   help="Verbose pyatv protocol logging.")
     args = p.parse_args()
+    if args.debug:
+        import logging
+        logging.basicConfig(level=logging.DEBUG)
     loop = asyncio.get_running_loop()
     return await {"scan": cmd_scan, "pair": cmd_pair, "play": cmd_play
                   }[args.command](loop, args)
