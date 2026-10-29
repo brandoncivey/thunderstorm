@@ -161,13 +161,15 @@ Audio is already built in and synced to each strike. To change it:
 ## 6. Shortcuts & party mode
 
 Two helper scripts wrap `thunderstorm.py` so you can trigger storms without a
-terminal. **Both expect a virtualenv at `.venv` inside this folder** and have
-the project path hardcoded at the top — after moving to a new Mac, do this once:
+terminal. **They run Python through pyenv** (`~/.pyenv/shims/python`, using
+the version pinned in `.python-version`) — Shortcuts doesn't load your shell
+profile, so a bare `python` wouldn't be found. They also have the project path
+hardcoded at the top. After moving to a new Mac, do this once:
 
 ```bash
 cd /path/to/this/folder
-python -m venv .venv
-./.venv/bin/pip install -r requirements.txt
+pyenv install -s "$(cat .python-version)"
+pip install -r requirements.txt
 ```
 
 then edit the `cd`/`DIR` path at the top of each script to match the folder's
