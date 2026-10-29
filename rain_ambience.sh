@@ -13,7 +13,7 @@
 
 DIR="/Users/bivey/devel/thunderstorm"
 PIDFILE="$DIR/.rain_ambience.pid"
-PY="$DIR/.venv/bin/python3"
+PY="$DIR/.venv/bin/python"
 
 case "$1" in
   start)

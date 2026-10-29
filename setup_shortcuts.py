@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 setup_shortcuts.py — Create the macOS Shortcuts for the thunderstorm scripts.
 

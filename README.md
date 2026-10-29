@@ -44,14 +44,14 @@ your computer's IP is `192.168.1.23`, use `--broadcast 192.168.1.255`.
 On a Mac, Python 3 is usually already installed. Then in **Terminal**:
 
 ```bash
-pip3 install pywizlight numpy
+pip install pywizlight numpy
 ```
 
 - `pywizlight` controls the bulbs.
 - `numpy` is only needed to **generate the thunder sounds** (step 3b). If you
   skip audio, you don't need it.
 
-If `pip3` isn't found, install Python 3 from https://www.python.org/downloads/
+If `pip` isn't found, install Python 3 from https://www.python.org/downloads/
 (or `brew install python`), then run the command again.
 
 ### 3b. Generate the thunder sounds (one time)
@@ -61,7 +61,7 @@ The download already includes four ready-to-use thunder files
 regenerate them:
 
 ```bash
-python3 generate_thunder.py
+python generate_thunder.py
 ```
 
 These are **synthetic, royalty-free** sounds built from filtered noise — no
@@ -78,16 +78,16 @@ Put `thunderstorm.py` somewhere easy (e.g. your Desktop), then in Terminal:
 cd ~/Desktop        # or wherever you saved the file
 
 # Test with NO bulbs first — just prints what it would do:
-python3 thunderstorm.py --simulate
+python thunderstorm.py --simulate
 
 # Auto-discover bulbs and run a 60-second storm:
-python3 thunderstorm.py
+python thunderstorm.py
 
 # Target specific bulbs by IP:
-python3 thunderstorm.py --ips 192.168.1.50 192.168.1.51
+python thunderstorm.py --ips 192.168.1.50 192.168.1.51
 
 # A wild 2-minute storm:
-python3 thunderstorm.py --duration 120 --intensity high
+python thunderstorm.py --duration 120 --intensity high
 ```
 
 Press **Ctrl+C** anytime to stop (stopping it from a Shortcut or `kill` works
@@ -137,7 +137,7 @@ Open `thunderstorm.py` in any text editor and tweak the values near the top:
 over Rio — lightning striking behind Corcovado, the lit Christ statue, city
 lights, rain. It's silent on purpose: the scripts own the audio, so thunder
 stays synced to the bulbs. Regenerate or restyle it with
-`python3 generate_rio_video.py` (needs `numpy`, `pillow`, and `ffmpeg`; takes
+`python generate_rio_video.py` (needs `numpy`, `pillow`, and `ffmpeg`; takes
 a few minutes).
 
 ### Customize the thunder
@@ -146,7 +146,7 @@ Audio is already built in and synced to each strike. To change it:
 
 - Edit `generate_thunder.py` — the `VARIANTS` list controls how close/sharp vs.
   distant/dull each clap is, and `make_rain()` shapes the rain bed — then
-  re-run `python3 generate_thunder.py` (regenerates the thunder claps and
+  re-run `python generate_thunder.py` (regenerates the thunder claps and
   `rain.wav`).
 - The rain's loudness relative to the thunder is `RAIN_VOLUME` at the top of
   `thunderstorm.py`.
@@ -166,7 +166,7 @@ the project path hardcoded at the top — after moving to a new Mac, do this onc
 
 ```bash
 cd /path/to/this/folder
-python3 -m venv .venv
+python -m venv .venv
 ./.venv/bin/pip install -r requirements.txt
 ```
 
@@ -235,7 +235,7 @@ distant thunderclaps, or a full lightning storm now and then. Auto-expires
 ./rain_ambience.sh status
 ```
 
-(Or run `python3 rain_ambience.py --thunder` directly in a terminal and stop
+(Or run `python rain_ambience.py --thunder` directly in a terminal and stop
 with Ctrl+C.) `--storms` is the only mode that touches the bulbs; the storms
 skip their own rain so they blend into the ambience bed, and the loudness of
 the rain relative to everything else is `RAIN_LEVEL` at the top of

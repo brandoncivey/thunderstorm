@@ -20,12 +20,12 @@ pre-generated WAVs, and `README.md` for end-user setup/usage instructions.
 ## Running it
 
 ```bash
-pip3 install pywizlight
+pip install pywizlight
 
-python3 thunderstorm.py --simulate              # no hardware needed; prints the effect
-python3 thunderstorm.py                          # auto-discover bulbs and run a 60s storm
-python3 thunderstorm.py --ips 192.168.1.50 192.168.1.51
-python3 thunderstorm.py --duration 120 --intensity high
+python thunderstorm.py --simulate              # no hardware needed; prints the effect
+python thunderstorm.py                          # auto-discover bulbs and run a 60s storm
+python thunderstorm.py --ips 192.168.1.50 192.168.1.51
+python thunderstorm.py --duration 120 --intensity high
 ```
 
 `--simulate` is the primary way to sanity-check changes without real bulbs — it

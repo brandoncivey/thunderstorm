@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 generate_thunder.py — Create royalty-free synthetic thunder sound files.
 
@@ -7,8 +7,8 @@ thunderstorm.py plays after each lightning strike. The sounds are generated
 from filtered noise, so they're 100% original and free to use.
 
 Run once:
-    pip3 install numpy
-    python3 generate_thunder.py
+    pip install numpy
+    python generate_thunder.py
 
 You can re-run it anytime to regenerate; each run randomizes the claps slightly.
 """

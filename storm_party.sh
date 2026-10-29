@@ -12,7 +12,7 @@
 
 DIR="/Users/bivey/devel/thunderstorm"
 PIDFILE="$DIR/.storm_party.pid"
-PY="$DIR/.venv/bin/python3"
+PY="python"
 # Override for testing, e.g. STORM_ARGS="--simulate --duration 5 --no-audio"
 STORM_ARGS="${STORM_ARGS:---duration 120 --intensity high}"
 

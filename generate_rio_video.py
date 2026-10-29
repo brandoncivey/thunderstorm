@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 generate_rio_video.py — Render a seamlessly-looping Rio de Janeiro storm video.
 
@@ -9,7 +9,7 @@ Like generate_storm_video.py, it's fully procedural and silent by design —
 thunderstorm.py / storm_party.sh own the audio.
 
 Run once (takes a few minutes):
-    python3 generate_rio_video.py              # writes rio_storm.mp4
+    python generate_rio_video.py              # writes rio_storm.mp4
 Requires numpy + pillow (generator-only deps) and ffmpeg on PATH.
 """
 

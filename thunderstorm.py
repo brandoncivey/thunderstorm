@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 thunderstorm.py — Realistic lightning + thunder effect for WiZ smart LED lights.
 
@@ -6,11 +6,11 @@ Talks to your WiZ bulbs directly over your local network (UDP port 38899) using
 the open-source `pywizlight` library. No cloud, no HomeKit, precise timing.
 
 Quick start:
-    pip3 install pywizlight
-    python3 thunderstorm.py --simulate          # test with no bulbs (prints what it would do)
-    python3 thunderstorm.py                      # auto-discover bulbs on your network and run
-    python3 thunderstorm.py --ips 192.168.1.50 192.168.1.51
-    python3 thunderstorm.py --duration 120 --intensity high
+    pip install pywizlight
+    python thunderstorm.py --simulate          # test with no bulbs (prints what it would do)
+    python thunderstorm.py                      # auto-discover bulbs on your network and run
+    python thunderstorm.py --ips 192.168.1.50 192.168.1.51
+    python thunderstorm.py --duration 120 --intensity high
 
 Press Ctrl+C at any time to stop. The script restores the lights to a soft
 warm glow when it exits.
@@ -434,7 +434,7 @@ async def main():
         player = find_audio_player()
         if not thunder_files:
             print("Note: no thunder_*.wav files found next to the script. "
-                  "Run `python3 generate_thunder.py` to create them. "
+                  "Run `python generate_thunder.py` to create them. "
                   "Continuing with lights only.")
         elif player is None:
             print("Note: no audio player found on this system. "
@@ -445,7 +445,7 @@ async def main():
         rain_file = load_rain_file()
         if rain_file is None:
             print("Note: no rain.wav found next to the script. "
-                  "Run `python3 generate_thunder.py` to create it. "
+                  "Run `python generate_thunder.py` to create it. "
                   "Continuing without rain.")
 
     bulbs = await get_bulbs(args.ips, args.broadcast, args.simulate)

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 rain_ambience.py — Continuous rain sound bed with occasional swells.
 
@@ -6,10 +6,10 @@ Audio only — no lighting effects. Optionally sprinkles in lone distant
 thunderclaps (--thunder) or, now and then, a full lightning storm via
 thunderstorm.py (--storms; that one DOES use the bulbs).
 
-    python3 rain_ambience.py                  # rain until Ctrl+C
-    python3 rain_ambience.py --thunder        # + occasional distant thunder
-    python3 rain_ambience.py --storms         # + a full light storm now and then
-    python3 rain_ambience.py --duration 3600  # one hour, then fade out
+    python rain_ambience.py                  # rain until Ctrl+C
+    python rain_ambience.py --thunder        # + occasional distant thunder
+    python rain_ambience.py --storms         # + a full light storm now and then
+    python rain_ambience.py --duration 3600  # one hour, then fade out
 
 Use rain_ambience.sh to run it in the background (start/stop/status).
 """
